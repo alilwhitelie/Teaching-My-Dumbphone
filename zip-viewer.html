@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>ZIP Viewer (KaiOS)</title>
+<style>
+  :root{ --bg:#0f172a; --panel:#111827; --muted:#334155; --text:#e5e7eb; --accent:#22d3ee; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif; }
+  header{ background:var(--panel); padding:.6rem .7rem; border-bottom:1px solid #1f2937; position:sticky; top:0; z-index:5 }
+  h1{ font-size:1rem; margin:0; }
+  main{ padding:.6rem; }
+  .card{ background:var(--panel); border:1px solid #1f2937; border-radius:10px; padding:.6rem; }
+  .row{ display:flex; gap:.4rem; align-items:center; }
+  button{ padding:.55rem .7rem; border-radius:8px; border:1px solid #243042; background:#0b1220; color:var(--text); font-weight:700 }
+  input[type=file]{ width:100%; }
+  #list{ max-height:55vh; overflow:auto; display:flex; flex-direction:column; gap:.35rem }
+  .item{ border:1px solid #243042; border-radius:8px; padding:.4rem; background:#0b1220 }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .small{ font-size:.85rem; color:#93a3b8 }
+  pre{ white-space:pre-wrap; word-wrap:break-word; }
+</style>
+</head>
+<body>
+  <header><h1>ZIP Viewer</h1></header>
+  <main>
+    <div class="card">
+      <input type="file" id="file" accept=".zip,application/zip">
+      <div class="small">Opens most ZIP files. Supports stored files fully; deflated files require browser support for DecompressionStream (if available). Images are rendered inline when possible; text is shown as plaintext.</div>
+    </div>
+    <div id="list" class="card"></div>
+    <div id="view" class="card" style="display:none">
+      <div id="meta" class="small mono"></div>
+      <pre id="text"></pre>
+      <img id="img" style="max-width:100%; display:none" alt="image preview">
+    </div>
+  </main>
+
+<script>
+// Minimal ZIP reader: lists entries and extracts content.
+// Supports method 0 (store) always; method 8 (deflate) via DecompressionStream if available.
+
+const fileInput = document.getElementById('file');
+const list = document.getElementById('list');
+const view = document.getElementById('view');
+const meta = document.getElementById('meta');
+const text = document.getElementById('text');
+const img = document.getElementById('img');
+
+fileInput.addEventListener('change', async () => {
+  list.innerHTML=''; view.style.display='none'; text.textContent=''; img.style.display='none';
+  const file = fileInput.files && fileInput.files[0];
+  if(!file) return;
+  const buf = new Uint8Array(await file.arrayBuffer());
+  try{
+    const entries = parseCentralDirectory(buf);
+    for(const e of entries){
+      const div = document.createElement('div');
+      div.className='item mono';
+      div.textContent = e.name + '  ('+e.uncomp+' bytes)  m'+e.method;
+      div.addEventListener('click', async ()=>{
+        const data = await extractEntry(buf, e);
+        showFile(e, data);
+      });
+      list.appendChild(div);
+    }
+    if(!entries.length){
+      list.innerHTML = '<div class="small">No entries found (not a ZIP?)</div>';
+    }
+  }catch(err){
+    list.innerHTML = '<div class="small">Error: '+err.message+'</div>';
+  }
+});
+
+function readU32(a, i){ return a[i] | (a[i+1]<<8) | (a[i+2]<<16) | (a[i+3]<<24); }
+function readU16(a, i){ return a[i] | (a[i+1]<<8); }
+
+function parseCentralDirectory(a){
+  // Find End of Central Directory (EOCD) by scanning back for signature 0x06054b50
+  let i = a.length - 22; // minimum
+  for(; i >= 0; i--){
+    if(readU32(a, i) === 0x06054b50) break;
+  }
+  if(i < 0) throw new Error('EOCD not found');
+  const cdirSize = readU32(a, i+12);
+  const cdirOffset = readU32(a, i+16);
+  const entries = readU16(a, i+10);
+  let p = cdirOffset;
+  const out = [];
+  for(let n=0; n<entries; n++){
+    if(readU32(a, p) !== 0x02014b50) break; // central file header
+    const method = readU16(a, p+10);
+    const comp = readU32(a, p+20);
+    const uncomp = readU32(a, p+24);
+    const nameLen = readU16(a, p+28);
+    const extraLen = readU16(a, p+30);
+    const commentLen = readU16(a, p+32);
+    const relOffset = readU32(a, p+42);
+    const name = new TextDecoder().decode(a.subarray(p+46, p+46+nameLen));
+    out.push({name, method, comp, uncomp, relOffset});
+    p += 46 + nameLen + extraLen + commentLen;
+  }
+  return out;
+}
+
+async function extractEntry(a, e){
+  // Local file header at e.relOffset: signature 0x04034b50
+  let p = e.relOffset;
+  if(readU32(a,p) !== 0x04034b50) throw new Error('Bad local header');
+  const nameLen = readU16(a, p+26);
+  const extraLen = readU16(a, p+28);
+  const dataStart = p + 30 + nameLen + extraLen;
+  const data = a.subarray(dataStart, dataStart + e.comp);
+  if(e.method === 0){ // stored
+    return data;
+  }else if(e.method === 8){ // deflate
+    if('DecompressionStream' in self){
+      const ds = new DecompressionStream('deflate-raw');
+      const stream = new Blob([data]).stream().pipeThrough(ds);
+      const out = await new Response(stream).arrayBuffer();
+      return new Uint8Array(out);
+    }else{
+      throw new Error('Deflate not supported on this browser (no DecompressionStream).');
+    }
+  }else{
+    throw new Error('Unsupported compression method: '+e.method);
+  }
+}
+
+function showFile(e, bytes){
+  meta.textContent = e.name + ' — ' + bytes.length + ' bytes';
+  text.textContent = ''; img.style.display='none'; view.style.display='block';
+  // Try to render text or image
+  const lower = e.name.toLowerCase();
+  if(/\.(png|jpg|jpeg|gif|webp)$/.test(lower)){
+    const blob = new Blob([bytes]);
+    img.src = URL.createObjectURL(blob);
+    img.style.display='block';
+  }else if(/\.(txt|md|csv|json|html|xml|js|css)$/i.test(lower) || isProbablyText(bytes)){
+    try{
+      text.textContent = new TextDecoder().decode(bytes);
+    }catch{ text.textContent = '[binary data]'; }
+  }else{
+    text.textContent = '[binary data] (save via long-press context menu if supported)';
+  }
+}
+
+function isProbablyText(u8){
+  let ascii=0, other=0;
+  for(let i=0;i<Math.min(u8.length,512);i++){
+    const c=u8[i];
+    if(c===9 || c===10 || c===13 || (c>=32 && c<127)) ascii++; else other++;
+  }
+  return ascii >= other;
+}
+</script>
+</body>
+</html>

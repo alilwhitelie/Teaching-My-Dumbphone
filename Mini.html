@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>KaiOS Offline Mini‑Toolkit</title>
+<style>
+  :root{
+    --bg:#0f172a; /* slate-900 */
+    --panel:#111827; /* gray-900 */
+    --muted:#334155; /* slate-700 */
+    --text:#e5e7eb; /* gray-200 */
+    --accent:#22d3ee; /* cyan-400 */
+    --accent2:#f97316; /* orange-500 */
+    --ok:#10b981; /* emerald-500 */
+    --warn:#ef4444; /* red-500 */
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";}
+  header{position:sticky;top:0;background:var(--panel);z-index:5;border-bottom:1px solid #1f2937}
+  .title{padding:.6rem .75rem;font-weight:700;letter-spacing:.5px}
+  nav{display:grid;grid-template-columns:repeat(6,1fr);gap:2px;padding:2px;background:#1f2937}
+  nav button{padding:.55rem .25rem;border:0;background:#0b1220;color:var(--text);font-weight:700;font-size:.85rem;border-radius:6px}
+  nav button.active{outline:2px solid var(--accent);background:#0a1a27;color:white}
+  main{padding:.5rem}
+  section{display:none}
+  section.active{display:block}
+  .row{display:flex;gap:.5rem;align-items:center}
+  .col{display:flex;flex-direction:column;gap:.5rem}
+  .card{background:var(--panel);border:1px solid #1f2937;border-radius:10px;padding:.6rem}
+  input, textarea, select{width:100%;padding:.6rem;border-radius:8px;border:1px solid #243042;background:#0b1220;color:var(--text);font-size:1rem}
+  textarea{min-height:35vh}
+  .btn{padding:.55rem .7rem;border:1px solid #243042;border-radius:8px;background:#0b1220;color:var(--text);font-weight:700}
+  .btn:active{transform:scale(.98)}
+  .btn.primary{border-color:var(--accent);}
+  .btn.good{border-color:var(--ok)}
+  .btn.warn{border-color:var(--warn)}
+  .grid-keys{display:grid;grid-template-columns:repeat(4,1fr);gap:.4rem}
+  .key{padding: .75rem .25rem;text-align:center;background:#0b1220;border:1px solid #243042;border-radius:10px;font-weight:800;font-size:1.05rem}
+  .key:active{transform:scale(.97)}
+  .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;}
+  .muted{color:#93a3b8}
+  .small{font-size:.85rem}
+  .space{height:.5rem}
+  .list{display:flex;flex-direction:column;gap:.35rem}
+  .todo{display:flex;gap:.5rem;align-items:center;background:#0b1220;border:1px solid #243042;border-radius:10px;padding:.5rem}
+  .todo input[type="checkbox"]{width:1.1rem;height:1.1rem}
+  .pill{display:inline-block;border:1px solid #243042;background:#0b1220;border-radius:999px;padding:.2rem .5rem}
+  .kbd{border:1px solid #243042;border-radius:6px;padding:.1rem .25rem;background:#0b1220}
+</style>
+</head>
+<body>
+  <header>
+    <div class="title">KaiOS Offline Mini‑Toolkit</div>
+    <nav id="tabs">
+      <button data-t="calc" class="active">1 Calc</button>
+      <button data-t="notes">2 Notes</button>
+      <button data-t="todo">3 To‑Do</button>
+      <button data-t="cards">4 Cards</button>
+      <button data-t="convert">5 Convert</button>
+      <button data-t="dict">6 Dict</button>
+    </nav>
+  </header>
+  <main>
+    <!-- CALCULATOR -->
+    <section id="calc" class="active">
+      <div class="card col">
+        <input id="calc-display" class="mono" inputmode="numeric" placeholder="0" />
+        <div class="row" style="gap:.35rem">
+          <button class="btn small" id="calc-clear">AC</button>
+          <span class="muted small">Allowed: 0-9 . ( ) + − × ÷ %</span>
+        </div>
+        <div class="grid-keys" id="calc-keys">
+          <div class="key">7</div><div class="key">8</div><div class="key">9</div><div class="key">÷</div>
+          <div class="key">4</div><div class="key">5</div><div class="key">6</div><div class="key">×</div>
+          <div class="key">1</div><div class="key">2</div><div class="key">3</div><div class="key">−</div>
+          <div class="key">0</div><div class="key">.</div><div class="key">%</div><div class="key">+</div>
+          <div class="key">(</div><div class="key">)</div><div class="key" data-act="del">⌫</div><div class="key" data-act="eq">＝</div>
+        </div>
+        <div id="calc-result" class="mono small muted"></div>
+      </div>
+    </section>
+
+    <!-- NOTES -->
+    <section id="notes">
+      <div class="card col">
+        <div class="row">
+          <select id="note-select"></select>
+          <button class="btn" id="note-new">New</button>
+          <button class="btn good" id="note-save">Save</button>
+          <button class="btn warn" id="note-del">Delete</button>
+        </div>
+        <input id="note-title" placeholder="Title" />
+        <textarea id="note-body" placeholder="Your note… (autosaves)"></textarea>
+        <div class="small muted">Tips: Use <span class="kbd">*</span> for bullets, <span class="kbd">[]</span> checkboxes. Stored locally.</div>
+      </div>
+    </section>
+
+    <!-- TODO -->
+    <section id="todo">
+      <div class="card col">
+        <div class="row">
+          <input id="todo-input" placeholder="New item" />
+          <button class="btn good" id="todo-add">Add</button>
+          <button class="btn warn" id="todo-clear">Clear Done</button>
+        </div>
+        <div id="todo-list" class="list"></div>
+        <div class="small muted">Use D‑pad to focus items. Enter toggles. Long‑press Delete to remove item.</div>
+      </div>
+    </section>
+
+    <!-- FLASHCARDS -->
+    <section id="cards">
+      <div class="card col">
+        <div class="row">
+          <button class="btn" id="cards-edit">Edit</button>
+          <button class="btn good" id="cards-quiz">Quiz</button>
+          <button class="btn warn" id="cards-reset">Reset</button>
+        </div>
+        <div id="cards-editor" class="col">
+          <textarea id="cards-raw" placeholder="Enter Q | A per line. Example:\nCapital of Florida | Tallahassee\n2+2 | 4"></textarea>
+          <button class="btn primary" id="cards-save">Save Deck</button>
+        </div>
+        <div id="cards-play" class="col" style="display:none">
+          <div id="card-box" class="mono" style="font-size:1.25rem;line-height:1.5;border:1px dashed #243042;border-radius:10px;padding:1rem;min-height:25vh"></div>
+          <div class="row">
+            <button class="btn" id="card-show">Show</button>
+            <button class="btn good" id="card-correct">✓</button>
+            <button class="btn warn" id="card-wrong">✗</button>
+            <button class="btn" id="card-next">Next</button>
+          </div>
+          <div id="card-progress" class="small muted"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONVERTER -->
+    <section id="convert">
+      <div class="card col">
+        <div class="row">
+          <select id="conv-type">
+            <option value="temp">Temperature</option>
+            <option value="len">Length</option>
+            <option value="mass">Mass</option>
+            <option value="vol">Volume</option>
+            <option value="time">Time</option>
+          </select>
+          <button class="btn" id="swap">Swap</button>
+        </div>
+        <div class="row">
+          <input id="conv-in" inputmode="decimal" placeholder="0" />
+          <select id="from"></select>
+        </div>
+        <div class="row">
+          <input id="conv-out" inputmode="decimal" placeholder="0" />
+          <select id="to"></select>
+        </div>
+        <div class="small muted" id="conv-note"></div>
+      </div>
+    </section>
+
+    <!-- DICTIONARY -->
+    <section id="dict">
+      <div class="card col">
+        <div class="row">
+          <input id="d-term" placeholder="Term" />
+          <input id="d-def" placeholder="Definition" />
+        </div>
+        <div class="row">
+          <button class="btn good" id="d-add">Add/Update</button>
+          <button class="btn warn" id="d-del">Delete</button>
+        </div>
+        <input id="d-search" placeholder="Search" />
+        <div id="d-list" class="list"></div>
+        <div class="small muted">This is your personal offline dictionary. Data stays on the device.</div>
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="card col">
+        <div><b>Shortcuts:</b> Press 1‑6 to switch tools. Data stored with <code>localStorage</code>.</div>
+        <div class="space"></div>
+        <div class="muted small">If the browser ever purges storage, export important text by copying into Notes and transferring manually.</div>
+      </div>
+    </section>
+  </main>
+
+<script>
+// --- Utilities ---
+const $ = sel => document.querySelector(sel);
+const $$ = sel => Array.from(document.querySelectorAll(sel));
+const store = {
+  get:(k, d)=>{try{return JSON.parse(localStorage.getItem(k)) ?? d}catch{ return d}},
+  set:(k, v)=>localStorage.setItem(k, JSON.stringify(v))
+};
+
+// --- Tabs & shortcuts ---
+const tabs = $('#tabs');
+const sections = ['calc','notes','todo','cards','convert','dict'];
+function activate(name){
+  $$('#tabs button').forEach(b=>b.classList.toggle('active', b.dataset.t===name));
+  sections.forEach(id=>document.getElementById(id).classList.toggle('active', id===name));
+}
+
+tabs.addEventListener('click', e=>{
+  if(e.target.tagName==='BUTTON'){ activate(e.target.dataset.t); }
+});
+
+document.addEventListener('keydown', e=>{
+  if(/^[1-6]$/.test(e.key)) activate(sections[Number(e.key)-1]);
+});
+
+// --- Calculator ---
+(function(){
+  const disp = $('#calc-display');
+  const keys = $('#calc-keys');
+  const result = $('#calc-result');
+  const clear = $('#calc-clear');
+  const allowed = /^[0-9+\-×÷()%.\s]*$/;
+  const mapOps = s=> s.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-').replace(/%/g,'/100');
+  function safeEval(expr){
+    if(!allowed.test(expr)) throw new Error('Bad input');
+    // Disallow consecutive operators (basic)
+    const mapped = mapOps(expr);
+    // eslint-disable-next-line no-new-func
+    return Function('return ('+mapped+')')();
+  }
+  function compute(){
+    const v = disp.value.trim();
+    if(!v){ result.textContent=''; return; }
+    try{ const out = safeEval(v); result.textContent = '= ' + out; }
+    catch(err){ result.textContent = '…'; }
+  }
+  disp.addEventListener('input', compute);
+  clear.addEventListener('click', ()=>{ disp.value=''; result.textContent=''; disp.focus(); });
+  keys.addEventListener('click', e=>{
+    const k = e.target.closest('.key'); if(!k) return;
+    if(k.dataset.act==='del'){ disp.value = disp.value.slice(0,-1); compute(); return; }
+    if(k.dataset.act==='eq'){ try{ disp.value = String(safeEval(disp.value)); result.textContent=''; }catch{ result.textContent='ERR'; } return; }
+    disp.value += k.textContent; compute();
+  });
+})();
+
+// --- Notes ---
+(function(){
+  const sel = $('#note-select');
+  const title = $('#note-title');
+  const body = $('#note-body');
+  const BTN = {new:$('#note-new'), save:$('#note-save'), del:$('#note-del')};
+  let notes = store.get('notes', []);
+  let idx = 0;
+  function refreshSelect(){
+    sel.innerHTML='';
+    notes.forEach((n,i)=>{
+      const o = document.createElement('option');
+      o.value=i; o.textContent=(n.title||'Untitled') + ' • ' + new Date(n.t||Date.now()).toLocaleDateString();
+      sel.appendChild(o);
+    });
+    if(notes.length===0){ notes=[{title:'Welcome', body:'This is your offline note.\n\nTips:\n- Data is stored locally.\n- Keep it small; space is limited.\n- Copy important stuff elsewhere too.', t:Date.now()}]; }
+    sel.value=idx; render();
+  }
+  function render(){
+    const n = notes[idx]||{title:'',body:'',t:Date.now()};
+    title.value=n.title||''; body.value=n.body||'';
+  }
+  function save(){
+    notes[idx] = {title:title.value.trim(), body:body.value, t:Date.now()};
+    store.set('notes', notes); refreshSelect();
+  }
+  sel.addEventListener('change',()=>{ idx = Number(sel.value||0); render(); });
+  BTN.new.addEventListener('click',()=>{ notes.push({title:'',body:'',t:Date.now()}); idx=notes.length-1; refreshSelect(); });
+  BTN.save.addEventListener('click', save);
+  BTN.del.addEventListener('click',()=>{ if(!notes.length) return; notes.splice(idx,1); idx=0; store.set('notes',notes); refreshSelect(); });
+  let timer; ['input','change'].forEach(ev=> body.addEventListener(ev,()=>{ clearTimeout(timer); timer=setTimeout(save, 1200); }));
+  title.addEventListener('change', save);
+  refreshSelect();
+})();
+
+// --- To‑Do ---
+(function(){
+  const input = $('#todo-input');
+  const add = $('#todo-add');
+  const clear = $('#todo-clear');
+  const list = $('#todo-list');
+  let items = store.get('todo', []);
+  function render(){
+    list.innerHTML='';
+    items.forEach((it,i)=>{
+      const row = document.createElement('div'); row.className='todo';
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.checked=!!it.d;
+      const span = document.createElement('div'); span.textContent=it.t; span.style.flex='1'; if(it.d) span.style.textDecoration='line-through';
+      const del = document.createElement('button'); del.className='btn warn small'; del.textContent='Del'; del.addEventListener('click',()=>{ items.splice(i,1); save();});
+      row.append(cb, span, del); list.appendChild(row);
+      cb.addEventListener('change',()=>{ it.d = cb.checked; save(); });
+    })
+  }
+  function save(){ store.set('todo', items); render(); }
+  add.addEventListener('click',()=>{ const t=input.value.trim(); if(!t) return; items.push({t, d:false}); input.value=''; save(); });
+  clear.addEventListener('click',()=>{ items = items.filter(x=>!x.d); save(); });
+  render();
+})();
+
+// --- Flashcards ---
+(function(){
+  const editBtn=$('#cards-edit'), quizBtn=$('#cards-quiz'), resetBtn=$('#cards-reset');
+  const editor=$('#cards-editor'), play=$('#cards-play');
+  const raw=$('#cards-raw'), saveBtn=$('#cards-save');
+  const box=$('#card-box'), show=$('#card-show'), correct=$('#card-correct'), wrong=$('#card-wrong'), next=$('#card-next'), prog=$('#card-progress');
+  let deck = store.get('cards_deck', [['Capital of Florida','Tallahassee'],['2+2','4']]);
+  let order=[], i=0, front=true, score={ok:0,bad:0};
+  function toText(pairs){ return pairs.map(p=>p.join(' | ')).join('\n'); }
+  function fromText(text){
+    return text.split(/\n+/).map(l=>l.trim()).filter(Boolean).map(l=>{
+      const m=l.split('|'); return [ (m[0]||'').trim(), (m[1]||'').trim() ];
+    });
+  }
+  function startQuiz(){ order = deck.map((_,i)=>i).sort(()=>Math.random()-.5); i=0; front=true; score={ok:0,bad:0};
+    editor.style.display='none'; play.style.display='flex'; renderCard(); }
+  function renderCard(){ if(i>=order.length){ box.textContent='Done! ✓'+score.ok+' ✗'+score.bad; prog.textContent=''; return; }
+    const pair = deck[order[i]]; box.textContent = front? ('Q: '+pair[0]) : ('A: '+pair[1]);
+    prog.textContent = `Card ${i+1}/${order.length}  ✓${score.ok} ✗${score.bad}`;
+  }
+  editBtn.addEventListener('click',()=>{ editor.style.display='flex'; play.style.display='none'; raw.value=toText(deck); });
+  quizBtn.addEventListener('click', startQuiz);
+  resetBtn.addEventListener('click',()=>{ localStorage.removeItem('cards_deck'); deck=[['Capital of Florida','Tallahassee']]; raw.value=toText(deck); startQuiz(); });
+  saveBtn.addEventListener('click',()=>{ deck = fromText(raw.value); store.set('cards_deck', deck); startQuiz(); });
+  show.addEventListener('click',()=>{ front=!front; renderCard(); });
+  next.addEventListener('click',()=>{ i++; front=true; renderCard(); });
+  correct.addEventListener('click',()=>{ score.ok++; i++; front=true; renderCard(); });
+  wrong.addEventListener('click',()=>{ score.bad++; i++; front=true; renderCard(); });
+  // boot
+  startQuiz();
+})();
+
+// --- Converter ---
+(function(){
+  const type=$('#conv-type'), from=$('#from'), to=$('#to'), inp=$('#conv-in'), out=$('#conv-out'), note=$('#conv-note'), swap=$('#swap');
+  const units={
+    temp:{ name:'Temperature', units:['C','F','K'], conv:(v, a, b)=>{
+      // to C
+      let c = a==='C'? v : a==='F'? (v-32)*5/9 : v-273.15;
+      // from C
+      return b==='C'? c : b==='F'? (c*9/5+32) : c+273.15;
+    }, note:'Celsius ↔ Fahrenheit ↔ Kelvin'},
+    len:{ name:'Length', units:['m','cm','mm','km','in','ft','yd','mi'], base:'m', map:{m:1, cm:.01, mm:.001, km:1000, in:0.0254, ft:0.3048, yd:0.9144, mi:1609.344}, note:'Exact SI factors'},
+    mass:{ name:'Mass', units:['kg','g','lb','oz'], base:'kg', map:{kg:1, g:0.001, lb:0.45359237, oz:0.028349523125}, note:'Pounds per Intl. avoirdupois'},
+    vol:{ name:'Volume', units:['L','mL','gal','qt','pt','cup','fl oz'], base:'L', map:{L:1, mL:0.001, gal:3.785411784, qt:0.946352946, pt:0.473176473, cup:0.2365882365, 'fl oz':0.0295735295625}, note:'US liquid measures'},
+    time:{ name:'Time', units:['s','min','h','day'], base:'s', map:{s:1, min:60, h:3600, day:86400}, note:'Seconds base'}
+  };
+  function fill(u){ from.innerHTML=''; to.innerHTML=''; u.forEach(x=>{ const o=document.createElement('option'); o.value=x; o.textContent=x; from.appendChild(o.cloneNode(true)); to.appendChild(o); }); }
+  function convert(){ const cat = units[type.value]; let v=parseFloat(inp.value); if(isNaN(v)){ out.value=''; return; }
+    if(cat.conv){ out.value = round(cat.conv(v, from.value, to.value)); }
+    else { const m=cat.map; const base=v*m[from.value]; out.value= round(base/m[to.value]); }
+  }
+  function round(n){ return Math.round(n*1e6)/1e6; }
+  function setType(){ const cat=units[type.value]; fill(cat.units); from.value=cat.units[0]; to.value=cat.units[1]||cat.units[0]; note.textContent=cat.note||''; convert(); }
+  inp.addEventListener('input', convert); from.addEventListener('change', convert); to.addEventListener('change', convert); type.addEventListener('change', setType); swap.addEventListener('click',()=>{ const a=from.value; from.value=to.value; to.value=a; convert(); });
+  setType();
+})();
+
+// --- Personal Dictionary ---
+(function(){
+  const term=$('#d-term'), def=$('#d-def'), add=$('#d-add'), del=$('#d-del'), search=$('#d-search'), list=$('#d-list');
+  let dict = store.get('dict', {});
+  function render(filter=''){
+    list.innerHTML='';
+    const entries = Object.entries(dict).filter(([k])=>k.toLowerCase().includes(filter.toLowerCase()))
+      .sort(([a],[b])=>a.localeCompare(b));
+    for(const [k,v] of entries){
+      const row=document.createElement('div'); row.className='todo';
+      const t=document.createElement('div'); t.style.flex='1'; t.innerHTML = '<b>'+escapeHtml(k)+'</b><div class="small muted">'+escapeHtml(v)+'</div>';
+      const e=document.createElement('button'); e.className='btn small'; e.textContent='Edit'; e.addEventListener('click',()=>{ term.value=k; def.value=v; term.focus(); });
+      row.append(t,e); list.appendChild(row);
+    }
+  }
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[m])); }
+  add.addEventListener('click',()=>{ const k=term.value.trim(); if(!k) return; dict[k]=def.value.trim()||''; store.set('dict',dict); render(search.value); });
+  del.addEventListener('click',()=>{ const k=term.value.trim(); if(!k) return; delete dict[k]; store.set('dict',dict); term.value=''; def.value=''; render(search.value); });
+  search.addEventListener('input',()=>render(search.value));
+  render();
+})();
+
+// Focus first useful control when switching sections
+sections.forEach(id=>{
+  const sec = document.getElementById(id);
+  sec.addEventListener('transitionend', ()=>{});
+});
+</script>
+</body>
+</html>

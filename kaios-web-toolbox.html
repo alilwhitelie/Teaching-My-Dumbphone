@@ -1,0 +1,143 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>KaiOS Web Toolbox</title>
+<style>
+    body { font-family: sans-serif; background: #fff; color: #000; margin: 0; padding: 0; }
+    h1 { font-size: 18px; padding: 8px; background: #333; color: white; text-align: center; }
+    .screen { display: none; padding: 8px; }
+    .visible { display: block; }
+    button, input, select, textarea { font-size: 16px; padding: 4px; margin: 4px 0; width: 100%; }
+    .result { margin-top: 8px; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<h1>KaiOS Web Toolbox</h1>
+
+<div id="menu" class="screen visible">
+    <button onclick="showScreen('weather')">Weather</button>
+    <button onclick="showScreen('dictionary')">Dictionary</button>
+    <button onclick="showScreen('translator')">Translator</button>
+    <button onclick="showScreen('currency')">Currency Converter</button>
+</div>
+
+<div id="weather" class="screen">
+    <button onclick="showScreen('menu')">← Menu</button>
+    <p>Enter City Name:</p>
+    <input id="weatherCity" placeholder="e.g. London">
+    <input id="weatherKey" placeholder="OpenWeatherMap API Key">
+    <button onclick="getWeather()">Get Weather</button>
+    <div id="weatherResult" class="result"></div>
+</div>
+
+<div id="dictionary" class="screen">
+    <button onclick="showScreen('menu')">← Menu</button>
+    <p>Enter Word:</p>
+    <input id="dictWord" placeholder="e.g. example">
+    <button onclick="getDefinition()">Get Definition</button>
+    <div id="dictResult" class="result"></div>
+</div>
+
+<div id="translator" class="screen">
+    <button onclick="showScreen('menu')">← Menu</button>
+    <p>Enter Text:</p>
+    <textarea id="transText" rows="3"></textarea>
+    <p>Target Language Code (e.g. es, fr, de):</p>
+    <input id="transLang" placeholder="e.g. es">
+    <button onclick="translateText()">Translate</button>
+    <div id="transResult" class="result"></div>
+</div>
+
+<div id="currency" class="screen">
+    <button onclick="showScreen('menu')">← Menu</button>
+    <p>Amount:</p>
+    <input id="curAmount" placeholder="e.g. 100">
+    <p>From Currency (e.g. USD):</p>
+    <input id="curFrom" placeholder="e.g. USD">
+    <p>To Currency (e.g. EUR):</p>
+    <input id="curTo" placeholder="e.g. EUR">
+    <button onclick="convertCurrency()">Convert</button>
+    <div id="curResult" class="result"></div>
+</div>
+
+<script>
+function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('visible'));
+    document.getElementById(id).classList.add('visible');
+}
+
+function getWeather() {
+    let city = document.getElementById('weatherCity').value.trim();
+    let key = document.getElementById('weatherKey').value.trim();
+    if (!city || !key) { alert("Enter city and API key"); return; }
+    fetch(`https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${key}&units=metric`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.main) {
+                document.getElementById('weatherResult').textContent =
+                    `${data.name}, ${data.sys.country}
+Temperature: ${data.main.temp}°C
+Conditions: ${data.weather[0].description}`;
+            } else {
+                document.getElementById('weatherResult').textContent = "Error: " + JSON.stringify(data);
+            }
+        })
+        .catch(err => document.getElementById('weatherResult').textContent = "Error: " + err);
+}
+
+function getDefinition() {
+    let word = document.getElementById('dictWord').value.trim();
+    if (!word) { alert("Enter a word"); return; }
+    fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word)}`)
+        .then(r => r.json())
+        .then(data => {
+            if (Array.isArray(data) && data.length > 0) {
+                let defs = data[0].meanings.map(m => 
+                    `${m.partOfSpeech}: ${m.definitions[0].definition}`).join("\n");
+                document.getElementById('dictResult').textContent = defs;
+            } else {
+                document.getElementById('dictResult').textContent = "No definition found.";
+            }
+        })
+        .catch(err => document.getElementById('dictResult').textContent = "Error: " + err);
+}
+
+function translateText() {
+    let text = document.getElementById('transText').value.trim();
+    let lang = document.getElementById('transLang').value.trim();
+    if (!text || !lang) { alert("Enter text and language code"); return; }
+    fetch(`https://libretranslate.de/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ q: text, source: "auto", target: lang, format: "text" })
+    })
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('transResult').textContent = data.translatedText || "Error translating.";
+        })
+        .catch(err => document.getElementById('transResult').textContent = "Error: " + err);
+}
+
+function convertCurrency() {
+    let amount = parseFloat(document.getElementById('curAmount').value.trim());
+    let from = document.getElementById('curFrom').value.trim().toUpperCase();
+    let to = document.getElementById('curTo').value.trim().toUpperCase();
+    if (!amount || !from || !to) { alert("Fill all fields"); return; }
+    fetch(`https://api.exchangerate.host/convert?from=${from}&to=${to}&amount=${amount}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.result !== undefined) {
+                document.getElementById('curResult').textContent = `${amount} ${from} = ${data.result} ${to}`;
+            } else {
+                document.getElementById('curResult').textContent = "Error converting.";
+            }
+        })
+        .catch(err => document.getElementById('curResult').textContent = "Error: " + err);
+}
+</script>
+
+</body>
+</html>

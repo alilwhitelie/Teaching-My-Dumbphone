@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>KaiOS GBA — Single‑File Wrapper (paste core below)</title>
+<style>
+  :root{ --bg:#0f172a; --panel:#111827; --muted:#334155; --text:#e5e7eb; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif; }
+  header{ background:#0b1220; padding:.6rem .7rem; border-bottom:1px solid #1f2937; }
+  h1{ font-size:1rem; margin:0; }
+  main{ padding:.6rem; display:flex; flex-direction:column; gap:.6rem; }
+  .card{ background:#0b1220; border:1px solid #1f2937; border-radius:10px; padding:.6rem; }
+  label{ font-size:.9rem; color:#cbd5e1; display:block; margin:.2rem 0; }
+  input,button{ width:100%; padding:.5rem; border-radius:8px; border:1px solid #243042; background:#0b1220; color:var(--text); font-size:1rem; }
+  button:active{ transform:scale(.98) }
+  #screen-wrap{ display:flex; justify-content:center; }
+  #screen{ width:288px; height:192px; image-rendering: pixelated; background:#000; border-radius:8px; border:1px solid #243042; }
+  .row{ display:flex; gap:.4rem; }
+  .col{ display:flex; flex-direction:column; gap:.4rem; }
+  .small{ font-size:.85rem; color:#9fb0c7 }
+  .warn{ color:#fca5a5 }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:.4rem; }
+</style>
+</head>
+<body>
+  <header><h1>KaiOS GBA — Single‑File</h1></header>
+  <main>
+    <div class="card col">
+      <div class="small">This file includes the UI, keypad mapping, SRAM autosave, and save import/export. You must paste an open‑source GBA core into the script block labeled <b>/* GBA CORE HERE */</b> below.</div>
+      <div class="small">Recommended: <b>gbajs</b> (JavaScript) or a WebAssembly build of <b>mGBA</b>. Make sure it defines <code>window.GameBoyAdvance</code> or compatible API.</div>
+      <div id="coreStatus" class="small">Core: <span id="coreName">not present</span></div>
+      <div class="grid">
+        <label>BIOS (.bin)
+          <input id="bios" type="file" accept=".bin,application/octet-stream">
+        </label>
+        <label>ROM (.gba)
+          <input id="rom" type="file" accept=".gba,application/octet-stream">
+        </label>
+      </div>
+      <div class="row">
+        <button id="run">Run</button>
+        <button id="pause">Pause</button>
+      </div>
+      <div class="row">
+        <button id="reset">Reset</button>
+        <button id="mute">Mute</button>
+      </div>
+      <div class="row">
+        <button id="exportSav">Export SRAM</button>
+        <input id="importSav" type="file" accept=".sav,application/octet-stream">
+      </div>
+      <div class="small">Key map for non‑touch T9: D‑Pad = GBA D‑Pad, <b>2=A</b>, <b>5=B</b>, <b>0=Start</b>, <b>#=Select</b>, <b>4=L</b>, <b>6=R</b>. SoftLeft toggles mute; SoftRight opens pause.</div>
+      <div class="small warn">Performance tip: Turn sound off, keep only this tab open. Some KaiOS builds won’t hit full speed.</div>
+    </div>
+
+    <div class="card" id="screen-wrap">
+      <canvas id="screen" width="240" height="160"></canvas>
+    </div>
+
+    <div class="card col small">
+      <details>
+        <summary>How to embed the core (read this once)</summary>
+        <ol>
+          <li>Open this HTML in a text editor.</li>
+          <li>Find the <b>&lt;script id="gba-core"&gt;</b> block marked “GBA CORE HERE”.</li>
+          <li>Paste the entire minified JS of your open‑source GBA core into that block.</li>
+          <li>Save the file and copy it to your phone. Done.</li>
+        </ol>
+      </details>
+    </div>
+  </main>
+
+<!-- ===== Paste your open‑source GBA core into this script tag ===== -->
+<script id="gba-core">
+/* GBA CORE HERE
+   Example: paste the contents of gbajs.min.js so that window.GameBoyAdvance is defined.
+   Do not wrap in another IIFE unless required by the core.
+*/
+</script>
+<!-- =============================================================== -->
+
+<script>
+(function(){
+  const $ = s=>document.querySelector(s);
+  const coreName = $('#coreName');
+  const screen = $('#screen');
+  const biosInput = $('#bios');
+  const romInput = $('#rom');
+  const btnRun = $('#run');
+  const btnPause = $('#pause');
+  const btnReset = $('#reset');
+  const btnMute = $('#mute');
+  const btnExportSav = $('#exportSav');
+  const inpImportSav = $('#importSav');
+
+  let gba = null;
+  let biosBuf = null;
+  let romBuf = null;
+  let audioEnabled = true;
+  let autosaveTimer = null;
+  let romKey = ''; // used to key SRAM in localStorage
+
+  function haveCore(){
+    if (window.GameBoyAdvance) { coreName.textContent = 'gbajs detected'; return 'gbajs'; }
+    coreName.textContent = 'not present';
+    return null;
+  }
+
+  function readFile(input, cb){
+    const f = input.files && input.files[0];
+    if(!f) return cb(null);
+    const reader = new FileReader();
+    reader.onload = () => cb(new Uint8Array(reader.result));
+    reader.onerror = () => cb(null);
+    reader.readAsArrayBuffer(f);
+  }
+
+  biosInput.addEventListener('change', ()=> readFile(biosInput, (u8)=>{ biosBuf = u8; }));
+  romInput.addEventListener('change', ()=> readFile(romInput, (u8)=>{ romBuf = u8; romKey = makeRomKey(u8); }));
+
+  function makeRomKey(u8){
+    // quick hash for keying SRAM
+    let h=2166136261>>>0;
+    for(let i=0;i<u8.length;i+=4096){ h^=u8[i]; h=Math.imul(h,16777619); }
+    return 'sram:'+('00000000'+(h>>>0).toString(16)).slice(-8);
+  }
+
+  function lsGet(k){ try{ return JSON.parse(localStorage.getItem(k)); }catch{return null} }
+  function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+
+  function ensureCore(){
+    const c = haveCore();
+    if(!c){ alert('No GBA core is embedded. Edit this HTML and paste a core into the <script id="gba-core"> block.'); }
+    return c;
+  }
+
+  function initGBA(){
+    if(!ensureCore()) return;
+    if(!romBuf){ alert('Load a ROM first.'); return; }
+
+    if(window.GameBoyAdvance){
+      if(!gba){
+        gba = new GameBoyAdvance();
+        gba.setCanvas(screen);
+        try{ gba.audio.masterEnable = audioEnabled; }catch{}
+      }
+      if(biosBuf){ try { gba.setBios(biosBuf); } catch(e){} }
+
+      // Attempt to inject SRAM from localStorage before running
+      const prevSav = lsGet(romKey);
+      if(prevSav && prevSav.sav){
+        try{ if(gba.mmu && gba.mmu.loadSavedata){ gba.mmu.loadSavedata(hexToBytes(prevSav.sav)); } }catch{}
+      }
+
+      try{
+        gba.loadRom(romBuf, function(ok){
+          if(ok===false){ alert('Failed to load ROM'); return; }
+          gba.runStable();
+          startAutosave();
+        });
+      }catch(e){
+        try{
+          const blob = new Blob([romBuf], {type:'application/octet-stream'});
+          gba.loadRomFromFile(blob, function(ok){
+            if(ok===false){ alert('Failed to load ROM'); return; }
+            gba.runStable();
+            startAutosave();
+          });
+        }catch(err){
+          alert('Could not start core: '+err.message);
+        }
+      }
+    }
+  }
+
+  function startAutosave(){
+    stopAutosave();
+    autosaveTimer = setInterval(()=>{
+      try{
+        if(gba && gba.mmu && gba.mmu.saveSavedata){
+          const sram = gba.mmu.saveSavedata();
+          if(sram){ lsSet(romKey, { sav: bytesToHex(sram) }); }
+        }
+      }catch{}
+    }, 5000);
+  }
+  function stopAutosave(){ if(autosaveTimer) { clearInterval(autosaveTimer); autosaveTimer=null; } }
+
+  btnRun.addEventListener('click', initGBA);
+  btnPause.addEventListener('click', ()=>{ try{ gba && gba.pause(); }catch{} });
+  btnReset.addEventListener('click', ()=>{ try{ gba && gba.reset(); startAutosave(); }catch{} });
+  btnMute.addEventListener('click', ()=>{
+    audioEnabled = !audioEnabled;
+    try{ if(gba && gba.audio){ gba.audio.masterEnable = audioEnabled; } }catch{}
+    btnMute.textContent = audioEnabled ? 'Mute' : 'Unmute';
+  });
+
+  // Export / Import SRAM
+  btnExportSav.addEventListener('click', ()=>{
+    try{
+      if(!(gba && gba.mmu && gba.mmu.saveSavedata)){ alert('Core does not expose saveSavedata.'); return; }
+      const sram = gba.mmu.saveSavedata();
+      if(!sram){ alert('No SRAM to export yet.'); return; }
+      const blob = new Blob([sram], {type:'application/octet-stream'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (romKey||'game') + '.sav';
+      a.click();
+    }catch(e){ alert('Export failed: '+e.message); }
+  });
+  inpImportSav.addEventListener('change', ()=>{
+    const f = inpImportSav.files && inpImportSav.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      const u8 = new Uint8Array(reader.result);
+      try{
+        if(gba && gba.mmu && gba.mmu.loadSavedata){
+          gba.mmu.loadSavedata(u8);
+          lsSet(romKey, { sav: bytesToHex(u8) });
+          alert('SRAM imported.');
+        }else{
+          alert('Core does not expose loadSavedata.');
+        }
+      }catch(e){ alert('Import failed: '+e.message); }
+    };
+    reader.readAsArrayBuffer(f);
+  });
+
+  // Hardware keypad mapping (KaiOS T9)
+  // Key codes: arrows 37/38/39/40; numbers '0'-'9' = 48-57; '#' = 35; '*' = 42.
+  // Soft keys use KeyboardEvent.key ("SoftLeft"/"SoftRight") on Gecko-derived engines.
+  const press = (btn)=>{ try{ if(gba && gba.keypad && gba.keypad['press'+btn]) gba.keypad['press'+btn](); }catch{} };
+  const release = (btn)=>{ try{ if(gba && gba.keypad && gba.keypad['release'+btn]) gba.keypad['release'+btn](); }catch{} };
+
+  const keyMapDown = {
+    37:'LEFT', 38:'UP', 39:'RIGHT', 40:'DOWN',  // D-pad
+    50:'A', 53:'B',                             // 2 -> A, 5 -> B
+    52:'L', 54:'R',                             // 4 -> L, 6 -> R
+    48:'START',                                 // 0 -> Start
+    35:'SELECT'                                 // # -> Select
+    // '*' (42) unused to avoid conflicts
+  };
+
+  window.addEventListener('keydown', (e)=>{
+    // Soft keys
+    if(e.key === 'SoftLeft'){ e.preventDefault(); btnMute.click(); return; }
+    if(e.key === 'SoftRight'){ e.preventDefault(); btnPause.click(); return; }
+    const b = keyMapDown[e.keyCode];
+    if(b){ e.preventDefault(); press(b); }
+  });
+  window.addEventListener('keyup', (e)=>{
+    const b = keyMapDown[e.keyCode];
+    if(b){ e.preventDefault(); release(b); }
+  });
+
+  // helpers
+  function bytesToHex(u8){
+    let s=''; for(let i=0;i<u8.length;i++){ const h=(u8[i]>>>0).toString(16).padStart(2,'0'); s+=h; }
+    return s;
+  }
+  function hexToBytes(hex){
+    const len=hex.length/2; const u=new Uint8Array(len);
+    for(let i=0;i<len;i++){ u[i]=parseInt(hex.substr(i*2,2),16); }
+    return u;
+  }
+
+  // Initial core probe
+  haveCore();
+})();
+</script>
+</body>
+</html>
