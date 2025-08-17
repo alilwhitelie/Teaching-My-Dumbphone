@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lightweight AI Services – Link Index (DeepSeek, Gemini, & Friends)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; line-height: 1.35; margin: 12px; }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    .note { font-size: 0.9rem; opacity: 0.8; margin-bottom: 10px; }
+    .search { margin: 8px 0 12px; }
+    input[type="search"] { width: 100%; padding: 8px; font-size: 1rem; }
+    section { margin: 14px 0; }
+    h2 { font-size: 1.05rem; margin: 10px 0 6px; }
+    ul { margin: 0; padding-left: 16px; }
+    li { margin: 6px 0; }
+    small { opacity: 0.8; }
+    a { text-decoration: none; }
+    a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <h1>Lightweight AI Services – Link Index</h1>
+  <p class="note">Tiny, low‑bloat links that work from a static HTML page. Most of these support simple <code>fetch()</code> calls and/or OpenAI‑compatible APIs.</p>
+
+  <div class="search">
+    <input id="q" type="search" placeholder="Filter links (e.g. deepseek, gemini, proxy, ui)…" aria-label="Filter links" />
+  </div>
+
+  <section>
+    <h2>DeepSeek (OpenAI‑compatible API)</h2>
+    <ul>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://api-docs.deepseek.com/">DeepSeek API Docs</a>
+        <br /><small>Official docs. Base URL <code>https://api.deepseek.com</code>, OpenAI‑style endpoints.</small>
+      </li>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://platform.deepseek.com/docs">DeepSeek Platform</a>
+        <br /><small>Account / keys / models overview.</small>
+      </li>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://www.datacamp.com/tutorial/deepseek-api">DeepSeek API Guide (DataCamp)</a>
+        <br /><small>Quick tips & example requests.</small>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Google Gemini (Web API)</h2>
+    <ul>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://ai.google.dev/gemini-api/docs">Gemini API Docs</a>
+        <br /><small>Official getting started + quickstart.</small>
+      </li>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://ai.google.dev/api">Gemini API Reference</a>
+        <br /><small>Endpoints, parameters, and SDKs.</small>
+      </li>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://github.com/google-gemini/cookbook">Gemini Cookbook (GitHub)</a>
+        <br /><small>Copy‑pasteable examples.</small>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>OpenAI‑Compatible, Multi‑Provider Gateways (handy for DeepSeek & Gemini)</h2>
+    <ul>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://docs.litellm.ai/">LiteLLM</a>
+        <br /><small>One API format → 100+ providers (proxy/server + SDK). Great for swapping models without rewriting code.</small>
+      </li>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://github.com/BerriAI/litellm-proxy">LiteLLM Proxy (GitHub)</a>
+        <br /><small>Run a tiny gateway that forwards <code>/chat/completions</code> to many backends.</small>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Ultra‑Light Web UIs (drop‑in frontends)</h2>
+    <ul>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://github.com/fingerthief/minimal-chat">MinimalChat</a>
+        <br /><small>Lean chat UI that supports DeepSeek and other OpenAI‑compatible endpoints. Good on low‑end devices.</small>
+      </li>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://github.com/huggingface/chat-ui">Hugging Face Chat UI</a>
+        <br /><small>Clean, minimal, and works with any OpenAI‑compatible server.</small>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Local / In‑Browser (no server)</h2>
+    <ul>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://github.com/mlc-ai/web-llm">WebLLM (GitHub)</a>
+        <br /><small>Run models in the browser with WebGPU; OpenAI‑compatible API shim for simple integrations.</small>
+      </li>
+      <li>
+        <a target="_blank" rel="noopener noreferrer" href="https://webllm.mlc.ai/">WebLLM – Home / Docs</a>
+        <br /><small>Docs and quickstart; privacy‑friendly and bandwidth‑light.</small>
+      </li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Tips for Low‑End Browsers</h2>
+    <ul>
+      <li>Prefer JSON endpoints; avoid loading big JS bundles/frameworks.</li>
+      <li>Stream text when possible (SSE) but fall back to plain JSON if SSE isn’t supported.</li>
+      <li>If CORS blocks you, call through a tiny proxy (e.g., LiteLLM Proxy or a Cloudflare Worker).</li>
+    </ul>
+  </section>
+
+  <noscript><p><strong>Note:</strong> The filter box needs JavaScript, but all links above are still clickable without it.</p></noscript>
+
+  <script>
+    (function () {
+      var q = document.getElementById('q');
+      var sections = document.getElementsByTagName('section');
+      function normalize(s){ return (s||'').toLowerCase(); }
+      function filter() {
+        var term = normalize(q.value);
+        for (var i = 0; i < sections.length; i++) {
+          var ul = sections[i].getElementsByTagName('ul')[0];
+          if (!ul) continue;
+          var lis = ul.getElementsByTagName('li');
+          var anyVisible = false;
+          for (var j = 0; j < lis.length; j++) {
+            var t = normalize(lis[j].textContent || lis[j].innerText);
+            var show = term === '' || t.indexOf(term) !== -1;
+            lis[j].style.display = show ? '' : 'none';
+            if (show) anyVisible = true;
+          }
+          sections[i].style.display = anyVisible ? '' : 'none';
+        }
+      }
+      q.addEventListener('input', filter);
+    })();
+  </script>
+</body>
+</html>
