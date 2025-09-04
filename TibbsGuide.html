@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roadmap to a Contractor's License: A Guide for Reentry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #F2F2F2;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .flow-step {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            min-height: 120px;
+            transition: all 0.3s ease;
+        }
+        .flow-arrow {
+            font-size: 2.5rem;
+            line-height: 1;
+            color: #0077C0;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body class="text-[#231F20]">
+    <div class="container mx-auto p-4 md:p-8 max-w-7xl">
+
+        <header class="text-center mb-12">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-[#005082] mb-2">Your Fresh Start in a Strong Field</h1>
+            <p class="text-lg text-gray-700 max-w-3xl mx-auto">This is your roadmap to a successful career as a licensed contractor in Florida. The path is clear, the demand is high, and support is available.</p>
+        </header>
+
+        <section class="text-center bg-white rounded-lg shadow-lg p-8 mb-12">
+            <h2 class="text-2xl font-bold text-[#0077C0] mb-2">The Construction Industry is Booming</h2>
+            <p class="text-gray-600 mb-4">Skilled trade professionals are more in demand than ever. This is a field where your experience and hard work are what truly matter.</p>
+            <div class="text-7xl md:text-8xl font-extrabold text-[#00A1E4]">
+                +11%
+            </div>
+            <p class="text-lg font-semibold text-gray-700 mt-2">Projected Job Growth for Construction Managers by 2030</p>
+        </section>
+
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold text-center text-[#005082] mb-8">The Roadmap to Your Contractor's License</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-center">
+                <div class="bg-white rounded-lg shadow-md p-6 flow-step border-l-4 border-[#00A1E4]">
+                    <div>
+                        <div class="text-2xl font-bold text-[#0077C0]">Step 1</div>
+                        <h3 class="text-lg font-semibold mt-2">Document Your Experience</h3>
+                        <p class="text-sm text-gray-600 mt-1">Gather proof of your work history. The state requires a combination of experience and/or education. Letters from former employers are powerful.</p>
+                    </div>
+                </div>
+                <div class="text-center hidden md:block flow-arrow">&rarr;</div>
+                <div class="text-center md:hidden flow-arrow">&darr;</div>
+                <div class="bg-white rounded-lg shadow-md p-6 flow-step border-l-4 border-[#00A1E4]">
+                    <div>
+                        <div class="text-2xl font-bold text-[#0077C0]">Step 2</div>
+                        <h3 class="text-lg font-semibold mt-2">Prepare & Pass the Exam</h3>
+                        <p class="text-sm text-gray-600 mt-1">Study for the Florida contractor examination. It covers business, finance, and trade knowledge. Many resources offer exam prep courses.</p>
+                    </div>
+                </div>
+                <div class="text-center hidden md:block flow-arrow">&rarr;</div>
+                <div class="text-center md:hidden flow-arrow">&darr;</div>
+                <div class="bg-white rounded-lg shadow-md p-6 flow-step border-l-4 border-[#00A1E4]">
+                    <div>
+                        <div class="text-2xl font-bold text-[#0077C0]">Step 3</div>
+                        <h3 class="text-lg font-semibold mt-2">Submit Your Application</h3>
+                        <p class="text-sm text-gray-600 mt-1">Complete and submit your application to the Florida DBPR. Be honest and thorough, especially regarding your history. This is critical.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            <div class="bg-white rounded-lg shadow-md p-8">
+                <h2 class="text-3xl font-bold text-[#005082] mb-6 text-center">Barriers to Reentry and How to Overcome Them</h2>
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="font-bold text-xl text-[#0077C0]">Top Barriers Faced</h3>
+                        <p class="text-gray-600">Finding stable employment and housing are often the biggest hurdles. A professional license is a powerful tool to secure a high-paying, stable career.</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="barriersChart"></canvas>
+                    </div>
+                     <p class="text-sm text-center text-gray-500 mt-2">This chart highlights the most common challenges people face when re-entering society. Addressing the employment barrier with a skilled trade license can significantly improve outcomes.</p>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-8">
+                 <h2 class="text-3xl font-bold text-[#005082] mb-6 text-center">The Power of Stable Employment</h2>
+                <div class="space-y-6">
+                    <div>
+                         <h3 class="font-bold text-xl text-[#0077C0]">Employment Reduces Recidivism</h3>
+                        <p class="text-gray-600">Having a steady, well-paying job is one of the most significant factors in successfully rejoining the community and building a new future.</p>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="recidivismChart"></canvas>
+                    </div>
+                    <p class="text-sm text-center text-gray-500 mt-2">Individuals who secure stable employment post-release are far less likely to return to prison. Your pursuit of a contractor's license is a direct investment in a stable future.</p>
+                </div>
+            </div>
+        </section>
+
+        <section class="mb-12">
+            <h2 class="text-3xl font-bold text-center text-[#005082] mb-8">Your Support Network: Key Resources</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-[#0077C0] mb-3">State Licensing & Legal</h3>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start"><span class="font-bold text-[#00A1E4] mr-2">&#9679;</span> <div><span class="font-semibold">FL DBPR:</span> The official source for all licensing requirements.</div></li>
+                        <li class="flex items-start"><span class="font-bold text-[#00A1E4] mr-2">&#9679;</span> <div><span class="font-semibold">Florida Rights Restoration Coalition:</span> Offers legal aid for licensing barriers.</div></li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-[#0077C0] mb-3">National Support</h3>
+                    <ul class="space-y-3 text-gray-700">
+                         <li class="flex items-start"><span class="font-bold text-[#00A1E4] mr-2">&#9679;</span> <div><span class="font-semibold">National Reentry Resource Center:</span> A database of programs nationwide.</div></li>
+                        <li class="flex items-start"><span class="font-bold text-[#00A1E4] mr-2">&#9679;</span> <div><span class="font-semibold">Jails to Jobs:</span> Provides practical employment guides for reentry.</div></li>
+                    </ul>
+                </div>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold text-[#0077C0] mb-3">Financial & Training</h3>
+                    <ul class="space-y-3 text-gray-700">
+                        <li class="flex items-start"><span class="font-bold text-[#00A1E4] mr-2">&#9679;</span> <div><span class="font-semibold">Federal Pell Grants:</span> Can fund vocational training and exam prep courses.</div></li>
+                        <li class="flex items-start"><span class="font-bold text-[#00A1E4] mr-2">&#9679;</span> <div><span class="font-semibold">WIOA Programs:</span> Local workforce boards offer funding for job training.</div></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+        
+        <footer class="text-center mt-12 bg-white rounded-lg shadow-lg p-8">
+            <h2 class="text-3xl font-bold text-[#005082] mb-4">Your Next Steps to Success</h2>
+            <p class="text-gray-700 max-w-2xl mx-auto mb-6">Focus on what you can control. Persistence is your greatest asset. Start with these simple, immediate actions.</p>
+            <ul class="text-left inline-block space-y-2">
+                <li class="flex items-center text-lg"><span class="text-2xl text-[#00A1E4] mr-3">&#x2714;</span> Contact a reentry organization today.</li>
+                <li class="flex items-center text-lg"><span class="text-2xl text-[#00A1E4] mr-3">&#x2714;</span> Visit the Florida DBPR website to review requirements.</li>
+                <li class="flex items-center text-lg"><span class="text-2xl text-[#00A1E4] mr-3">&#x2714;</span> Start organizing your work history and references.</li>
+            </ul>
+        </footer>
+
+    </div>
+
+    <script>
+        const wrapLabel = (label) => {
+            const max = 16;
+            if (label.length <= max) {
+                return label;
+            }
+            const words = label.split(' ');
+            const lines = [];
+            let currentLine = '';
+            for (const word of words) {
+                if ((currentLine + ' ' + word).trim().length > max) {
+                    lines.push(currentLine.trim());
+                    currentLine = word;
+                } else {
+                    currentLine = (currentLine + ' ' + word).trim();
+                }
+            }
+            if (currentLine) {
+                lines.push(currentLine.trim());
+            }
+            return lines;
+        };
+    
+        const tooltipTitleCallback = (tooltipItems) => {
+            const item = tooltipItems[0];
+            let label = item.chart.data.labels[item.dataIndex];
+            if (Array.isArray(label)) {
+                return label.join(' ');
+            }
+            return label;
+        };
+        
+        const chartColors = {
+            blue1: '#00A1E4',
+            blue2: '#0077C0',
+            blue3: '#005082',
+            grey: '#F2F2F2',
+            dark: '#231F20'
+        };
+
+        const barriersCtx = document.getElementById('barriersChart').getContext('2d');
+        const barriersChart = new Chart(barriersCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Finding Employment', 'Finding Housing', 'Lack of Transportation', 'Family reunification'].map(wrapLabel),
+                datasets: [{
+                    label: 'Severity of Barrier',
+                    data: [85, 79, 60, 45],
+                    backgroundColor: [chartColors.blue1, chartColors.blue2, chartColors.blue3, '#60a5fa'],
+                    borderColor: '#fff',
+                    borderWidth: 2,
+                    borderRadius: 5,
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                           title: tooltipTitleCallback
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                           display: false
+                        }
+                    },
+                    y: {
+                         grid: {
+                            display: false
+                        },
+                        ticks: {
+                           font: {
+                            size: 12,
+                            weight: '500'
+                           },
+                           color: chartColors.dark
+                        }
+                    }
+                }
+            }
+        });
+
+        const recidivismCtx = document.getElementById('recidivismChart').getContext('2d');
+        const recidivismChart = new Chart(recidivismCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Less Likely to Reoffend with Stable Job', 'Likelihood without Stable Job'],
+                datasets: [{
+                    label: 'Impact of Employment',
+                    data: [75, 25],
+                    backgroundColor: [
+                        chartColors.blue2,
+                        chartColors.blue1
+                    ],
+                    borderColor: '#ffffff',
+                    borderWidth: 4,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '70%',
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                           padding: 20,
+                           font: {
+                            size: 12,
+                            weight: '500'
+                           },
+                           color: chartColors.dark
+                        }
+                    },
+                     tooltip: {
+                        callbacks: {
+                           title: tooltipTitleCallback
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+
+</body>
+</html>
