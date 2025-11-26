@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strip AI v3.7</title>
+    <style>
+        /* KAIOS COMPACT CSS */
+        :root { 
+            --bg: #000000; 
+            --surface: #121212;
+            --text: #e0e0e0;
+            --accent: #bb86fc;
+            --border: #333;
+            --danger: #cf6679;
+            --success: #03dac6;
+        }
+        
+        body { 
+            background-color: var(--bg); 
+            color: var(--text); 
+            font-family: sans-serif; 
+            margin: 0; padding: 0; 
+            height: 100vh; 
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            font-size: 12px;
+        }
+
+        /* GREETING SWIPER (NOW OUTSIDE HISTORY) */
+        #greetingContainer { 
+            background: #1a1a1a; 
+            padding: 5px; 
+            border-bottom: 1px solid var(--accent); 
+            display: none; /* Hidden by default */
+            flex: 0 0 auto;
+        }
+        #greetNav { display: flex; justify-content: space-between; margin-bottom: 5px; border-bottom: 1px solid #444; }
+        #greetText { white-space: pre-wrap; font-size: 12px; color: #ccc; max-height: 100px; overflow-y: auto; }
+        
+        /* HISTORY */
+        #history { flex: 1; overflow-y: auto; padding: 5px; padding-bottom: 50px; scroll-behavior: smooth; }
+        .msg { margin-bottom: 8px; padding: 6px 8px; border-radius: 4px; line-height: 1.3; word-wrap: break-word; max-width: 98%; }
+        .msg.user { background: #2a2a2a; color: var(--accent); align-self: flex-end; margin-left: auto; white-space: pre-wrap; border-bottom: 1px solid var(--accent); }
+        .msg.ai { background: #0d0d0d; color: var(--text); align-self: flex-start; border-left: 2px solid #444; }
+        .msg.sys { font-size: 0.9em; color: #666; text-align: center; padding: 2px; font-style: italic; }
+
+        /* FOOTER */
+        #footer { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--surface); border-top: 1px solid var(--border); padding: 4px; box-sizing: border-box; z-index: 10; }
+        #controls { display: flex; gap: 4px; align-items: flex-end; }
+        
+        /* INPUTS */
+        textarea, input, select { 
+            background: #000; color: white; border: 1px solid var(--border); 
+            padding: 4px 6px; box-sizing: border-box; font-size: 12px; 
+            border-radius: 2px; margin-bottom: 4px; width: 100%;
+        }
+        textarea:focus, input:focus, select:focus { border-color: var(--accent); outline: none; }
+        textarea.chat-input { min-height: 35px; max-height: 80px; resize: none; flex: 1; }
+        
+        /* BUTTONS - KAIOS OPTIMIZED */
+        button { 
+            background: #1e1e1e; color: white; border: 1px solid var(--border); 
+            padding: 6px 10px; cursor: pointer; font-weight: bold; font-size: 11px; 
+            border-radius: 2px; text-transform: uppercase;
+            min-height: 48px;
+            min-width: 48px;
+            position: relative;
+            z-index: 1;
+        }
+        button:active, button:focus { 
+            background: var(--accent); 
+            color: black; 
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
+        .icon-btn { 
+            width: 48px; 
+            height: 48px; 
+            padding: 0; 
+            font-size: 16px; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #btnSend { 
+            background: var(--accent); 
+            color: black; 
+            height: 48px; 
+            min-width: 60px;
+        }
+
+        /* SETTINGS DRAWER */
+        #settingsPane { display: none; background: var(--surface); border-top: 1px solid var(--accent); padding: 8px; max-height: 75vh; overflow-y: auto; }
+        .section-label { color: var(--accent); font-weight: bold; font-size: 10px; margin-top: 8px; margin-bottom: 2px; text-transform: uppercase; border-bottom: 1px solid #333; }
+        
+        .row-flex { display: flex; gap: 4px; align-items: center; }
+        .row-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; }
+        .toggle-label { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #aaa; background: #1a1a1a; padding: 2px 4px; border: 1px solid #333; border-radius: 2px; }
+        input[type="checkbox"] { width: auto; margin: 0; }
+
+        /* OVERLAYS */
+        .overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 100; flex-direction: column; }
+        .overlay-header { display: flex; justify-content: space-between; padding: 8px; background: var(--surface); border-bottom: 1px solid var(--border); }
+        .overlay-body { flex: 1; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; }
+        .full-text-editor { flex: 1; background: #111; color: var(--text); border: 1px solid var(--border); padding: 5px; font-family: monospace; resize: none; }
+
+        /* CODE BLOCKS */
+        .code-box { background: #111; border: 1px solid #333; margin: 5px 0; font-family: monospace; }
+        .code-header { background: #222; padding: 2px 5px; display: flex; justify-content: space-between; font-size: 10px; color: #888; }
+        .code-content { padding: 5px; font-size: 11px; white-space: pre-wrap; overflow-x: auto; color: #ccc; }
+        .code-btn { 
+            background: #333; color: white; border: 1px solid #555; 
+            padding: 2px 6px; font-size: 9px; margin-left: 4px; 
+            touch-action: manipulation; min-height: 24px; min-width: 40px;
+        }
+        
+        /* NAV BTNS */
+        .nav-btn { background: var(--accent); color: black; border: none; padding: 4px 12px; font-weight: bold; min-width: 40px; }
+
+        /* MODAL */
+        #modalOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 200; justify-content: center; align-items: center; }
+        .modal-box { background: var(--surface); border: 2px solid var(--accent); padding: 20px; width: 85%; text-align: center; border-radius: 8px; }
+        .modal-btn { width: 40%; margin: 5px; padding: 10px; min-height: 48px; }
+        
+        /* DATALIST HACK */
+        input[list] { background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="white"><path d="M7 10l5 5 5-5z"/></svg>'); background-repeat: no-repeat; background-position: right 5px center; background-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div id="editorOverlay" class="overlay">
+    <div class="overlay-header">
+        <span id="editorTitle" style="color:var(--accent); font-weight:bold;">EDITOR</span>
+        <button id="editorClose" style="background:var(--danger);" onclick="closeEditor()">SAVE & CLOSE</button>
+    </div>
+    <div class="overlay-body">
+        <textarea id="editorContent" class="full-text-editor"></textarea>
+    </div>
+</div>
+
+<div id="modalOverlay">
+    <div class="modal-box">
+        <h3 id="modalTitle" style="color:var(--accent); margin-top:0;">CONFIRM?</h3>
+        <p id="modalText" style="color:#ccc; font-size:12px;"></p>
+        <button id="modalYes" class="modal-btn" style="background:var(--success); color:black;" onclick="handleModalYes()">YES</button>
+        <button id="modalNo" class="modal-btn" style="background:var(--danger); color:black;" onclick="closeModal()">NO</button>
+    </div>
+</div>
+
+<div id="greetingContainer">
+    <div id="greetNav">
+        <button class="nav-btn" id="greetPrev" onclick="cycleGreeting(-1)">❮</button>
+        <span id="greetCount" style="color:#888; align-self:center;">1/1</span>
+        <button class="nav-btn" id="greetNext" onclick="cycleGreeting(1)">❯</button>
+    </div>
+    <div id="greetText"></div>
+</div>
+
+<div id="history">
+    <div class="msg sys"><strong>STRIP AI v3.7</strong><br>KaiOS Button Fix.</div>
+</div>
+
+<div id="footer">
+    <div id="controls">
+        <button id="btnSettings" class="icon-btn" onclick="toggleSettings()">⚙</button>
+        <textarea id="userInput" class="chat-input" rows="1" placeholder="..." oninput="autoResize(this)"></textarea>
+        <button id="btnSend" onclick="sendMessage()">➤</button>
+    </div>
+
+    <div id="settingsPane">
+        <div class="row-flex" style="justify-content:space-between;">
+            <div class="section-label" style="margin:0;">UI SCALE</div>
+            <input type="number" id="fontSize" value="12" min="10" max="24" style="width:50px;" onchange="applyFontSize()">
+        </div>
+
+        <div class="section-label">PROVIDER</div>
+        <select id="providerSelect" onchange="changeProvider()">
+            <option value="openrouter">OpenRouter</option>
+            <option value="zai">zAI</option>
+            <option value="nanogpt">NanoGPT</option>
+        </select>
+        <input type="password" id="apiKey" placeholder="API Key" onchange="saveApiKey()">
+
+        <div class="section-label">MODEL (Type to Filter)</div>
+        <div class="row-flex">
+            <input list="modelList" id="modelInput" placeholder="Search models..." onchange="saveState()" style="flex:1; margin:0;">
+            <datalist id="modelList"></datalist>
+            <button id="btnRefresh" class="icon-btn" onclick="refreshModels()">↻</button>
+        </div>
+        <div id="modelStatus" style="font-size:10px; color:#666; text-align:right;">Ready</div>
+
+        <div class="section-label">ADVANCED</div>
+        <div class="row-grid-3">
+            <div><label style="font-size:9px; color:#888;">TEMP</label><input type="number" id="temp" value="1.0" step="0.1" onchange="saveState()"></div>
+            <div><label style="font-size:9px; color:#888;">TOP P</label><input type="number" id="topP" value="1.0" step="0.1" onchange="saveState()"></div>
+            <div><label style="font-size:9px; color:#888;">CTX</label><input type="number" id="maxTokens" value="4096" step="100" onchange="saveState()"></div>
+        </div>
+        
+        <div class="row-grid-3" style="margin-top:5px;">
+            <label class="toggle-label"><input type="checkbox" id="toolSupport" onchange="saveState()"> Tools</label>
+            <label class="toggle-label"><input type="checkbox" id="enterToSend" checked onchange="saveState()"> Enter</label>
+            <label class="toggle-label"><input type="checkbox" id="useProxy" checked onchange="saveState()"> Proxy</label>
+        </div>
+
+        <div class="section-label">PROMPTS</div>
+        <div class="row-flex">
+            <select id="personaSelect" onchange="applyPersona()" style="flex:1; margin:0;">
+                <option value="default">Default</option>
+                <option value="beast">👹 Beast</option>
+                <option value="celia">★ Celia</option>
+                <option value="marinara">🍝 Marinara</option>
+                <option value="glm_think">🧠 GLM</option>
+                <option value="unhinged">⚠️ Unhinged</option>
+            </select>
+            <button id="btnEditSys" class="icon-btn" onclick="openEditor('sys')">✏️</button>
+        </div>
+
+        <div class="section-label">CARD</div>
+        <div class="row-flex">
+            <input type="file" id="fileUpload" accept=".png, .json" style="flex:1; margin:0; font-size:10px;">
+            <button id="btnClearCard" class="icon-btn" style="background:#400; color:#faa;" onclick="clearCard()">✕</button>
+            <button id="btnEditCard" class="icon-btn" onclick="openEditor('card')">✏️</button>
+        </div>
+        <div id="cardStatus" style="font-size:10px; color:#666;">No card loaded</div>
+
+        <div class="section-label">STATE</div>
+        <div class="row-grid-3">
+            <button id="btnExport" style="background:#004D40;" onclick="exportState()">EXP</button>
+            <button id="btnImport" style="background:#006064;" onclick="document.getElementById('importStateFile').click()">IMP</button>
+            <button id="btnWipe" style="background:#3e0000; color:#ffb4ab;" onclick="askWipe()">WIPE</button>
+        </div>
+        <input type="file" id="importStateFile" accept=".json" style="display:none;" onchange="importState(this)">
+    </div>
+</div>
+
+<script>
+    const PROVIDERS = {
+        openrouter: { name: "OpenRouter", chat: "https://openrouter.ai/api/v1/chat/completions", models: "https://openrouter.ai/api/v1/models", defaultKey: "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" },
+        zai: { name: "zAI", chat: "https://api.z.ai/api/coding/paas/v4/chat/completions", models: "https://api.z.ai/api/coding/paas/v4/models", defaultKey: "34731cf6fab64a9abcd7465abd43913c.Gf5pp4yjaVz50bkd" },
+        nanogpt: { name: "NanoGPT", chat: "https://nano-gpt.com/api/v1/chat/completions", models: "https://nano-gpt.com/api/v1/models", defaultKey: "" }
+    };
+    
+    const BEAST_DATA = `You are a maximally intelligent AI beast: quick-witted, brutally sarcastic...`; 
+    const CELIA_DATA = `You are Celia...`;
+    const MARINARA_DATA = `You are an expert Game Master...`;
+    const GLM_THINK_DATA = `You are John Steinbeck... /think`;
+    const PERSONAS = { default: "Helpful assistant.", beast: BEAST_DATA, celia: CELIA_DATA, marinara: MARINARA_DATA, glm_think: GLM_THINK_DATA, unhinged: "Unhinged AI..." };
+
+    const els = {
+        settings: document.getElementById("settingsPane"), history: document.getElementById("history"),
+        input: document.getElementById("userInput"), modelInput: document.getElementById("modelInput"),
+        modelList: document.getElementById("modelList"), apiKey: document.getElementById("apiKey"),
+        greetBox: document.getElementById("greetingContainer"), greetText: document.getElementById("greetText"),
+        editor: document.getElementById("editorOverlay"), editorContent: document.getElementById("editorContent"),
+        editorTitle: document.getElementById("editorTitle"), status: document.getElementById("modelStatus"),
+        refreshBtn: document.getElementById("btnRefresh"), modal: document.getElementById("modalOverlay"),
+        modalTitle: document.getElementById("modalTitle"), modalText: document.getElementById("modalText")
+    };
+
+    let messages = [], currentGreetings = [], currentGreetingIdx = 0, currentProvider = "openrouter", activeEditorTarget = "";
+    let sysText = "", cardText = "";
+    let lorebook = [];
+    let pendingModalAction = null; // 'wipe' or 'newCard'
+
+    // Expose functions for onclick
+    window.toggleSettings = () => {
+        const p = els.settings;
+        p.style.display = p.style.display === "block" ? "none" : "block";
+        if(p.style.display === "block") window.scrollTo(0, document.body.scrollHeight);
+    };
+    window.refreshModels = async () => {
+        els.status.innerText = "Fetching...";
+        try {
+            let url = PROVIDERS[currentProvider].models;
+            if (document.getElementById("useProxy").checked) url = "https://corsproxy.io/?" + encodeURIComponent(url);
+            const res = await fetch(url, { headers: { "Authorization": `Bearer ${els.apiKey.value}` } });
+            const data = await res.json();
+            const models = data.data || [];
+            models.sort((a, b) => (parseFloat(a.pricing?.prompt||0) - parseFloat(b.pricing?.prompt||0)) || a.id.localeCompare(b.id));
+            localStorage.setItem("gs_models_" + currentProvider, JSON.stringify(models));
+            populateModelList(models);
+            els.status.innerText = `Loaded ${models.length}`;
+        } catch(e) { els.status.innerText = "Err: " + e.message; }
+    };
+
+    window.onload = function() {
+        const fs = localStorage.getItem("gs_fontsize") || "12";
+        document.body.style.fontSize = fs + "px"; document.getElementById("fontSize").value = fs;
+
+        sysText = localStorage.getItem("gs_sys") || PERSONAS.default;
+        cardText = localStorage.getItem("gs_card") || "";
+        
+        // Load Lorebook
+        const savedLore = localStorage.getItem("gs_lorebook");
+        lorebook = savedLore ? JSON.parse(savedLore) : [];
+        updateCardStatus();
+
+        document.getElementById("toolSupport").checked = (localStorage.getItem("gs_tools") === "true");
+        document.getElementById("enterToSend").checked = (localStorage.getItem("gs_entersend") !== "false");
+        document.getElementById("useProxy").checked = (localStorage.getItem("gs_proxy") !== "false");
+
+        currentProvider = localStorage.getItem("gs_provider") || "openrouter";
+        document.getElementById("providerSelect").value = currentProvider;
+        loadApiKey();
+
+        const savedModels = localStorage.getItem("gs_models_" + currentProvider);
+        if (savedModels) populateModelList(JSON.parse(savedModels));
+        const lastModel = localStorage.getItem("gs_selected_model_" + currentProvider);
+        if(lastModel) els.modelInput.value = lastModel;
+
+        const hist = localStorage.getItem("gs_history");
+        if(hist) {
+            messages = JSON.parse(hist);
+            messages.forEach(m => { if(m.role !== 'system') renderMessage(m.role, m.content); });
+        } else {
+            checkGreetings();
+        }
+    };
+
+    // Simplified KaiOS Key Navigation
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && document.activeElement.id === 'userInput') {
+            e.preventDefault();
+            if (document.getElementById("enterToSend").checked) sendMessage();
+        } else if (e.key === 'SoftLeft') {
+            toggleSettings();
+        } else if (e.key === 'SoftRight') {
+            sendMessage();
+        }
+    });
+
+    function updateCardStatus() {
+        let status = cardText ? "Card Loaded" : "No card loaded";
+        if (lorebook.length > 0) status += ` (+${lorebook.length} Lore)`;
+        document.getElementById("cardStatus").innerText = status;
+        document.getElementById("cardStatus").style.color = cardText ? "#03dac6" : "#666";
+    }
+
+    // --- MODAL LOGIC ---
+    function openModal(title, text, action) {
+        els.modalTitle.innerText = title;
+        els.modalText.innerText = text;
+        pendingModalAction = action;
+        els.modal.style.display = "flex";
+    }
+    window.closeModal = function() { els.modal.style.display = "none"; pendingModalAction = null; };
+    window.handleModalYes = function() {
+        if (pendingModalAction === 'wipe') {
+            messages = [];
+            els.history.innerHTML = '<div class="msg sys"><strong>SYSTEM:</strong> Chat Wiped.</div>';
+            // Keep Greetings! Just clear chat.
+            localStorage.removeItem("gs_history");
+            checkGreetings(); // Re-show greeting if exists
+        } else if (pendingModalAction === 'newCard') {
+            messages = [];
+            els.history.innerHTML = '<div class="msg sys"><strong>SYSTEM:</strong> New Card Loaded.</div>';
+            localStorage.removeItem("gs_history");
+            checkGreetings(); // Show new greeting
+        }
+        closeModal();
+    };
+    window.askWipe = function() { openModal("WIPE HISTORY?", "Chats will be deleted. Settings & Cards stay.", "wipe"); };
+
+    // --- EDITOR ---
+    window.openEditor = function(target) {
+        activeEditorTarget = target;
+        els.editorTitle.innerText = target === 'sys' ? "SYSTEM" : "CARD DATA";
+        els.editorContent.value = target === 'sys' ? sysText : cardText;
+        els.editor.style.display = "flex";
+    };
+    window.closeEditor = function() {
+        if(activeEditorTarget === 'sys') sysText = els.editorContent.value;
+        else {
+            cardText = els.editorContent.value;
+            updateCardStatus();
+        }
+        saveState();
+        els.editor.style.display = "none";
+    };
+    window.clearCard = function() {
+        if(confirm("Clear Card & Lore?")) {
+            cardText = "";
+            lorebook = [];
+            updateCardStatus();
+            els.greetBox.style.display = "none"; // Hide greeting
+            currentGreetings = [];
+            localStorage.removeItem("gs_greetings");
+            saveState();
+        }
+    };
+
+    // --- FILES ---
+    document.getElementById("fileUpload").addEventListener('change', function() {
+        const file = this.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        if(file.name.endsWith('.json')) {
+            reader.onload = (e) => processCard(JSON.parse(e.target.result));
+            reader.readAsText(file);
+        } else {
+            reader.onload = (e) => processCard(parsePNG(e.target.result));
+            reader.readAsArrayBuffer(file);
+        }
+        this.value = ''; 
+    });
+
+    function processCard(json) {
+        const data = (json.spec === "chara_card_v2" && json.data) ? json.data : json;
+        const name = data.name || "Unknown";
+        const desc = data.description || "";
+        const pers = data.personality || "";
+        const scen = data.scenario || "";
+        const mesEx = data.mes_example || "";
+        const notes = data.creator_notes || "";
+        
+        cardText = `[CHAR: ${name}]\n[DESC: ${desc}]\n[PERS: ${pers}]\n[SCEN: ${scen}]`;
+        if(mesEx) cardText += `\n[EXAMPLES]\n${mesEx}`;
+        if(notes) cardText += `\n[NOTES]\n${notes}`;
+        
+        // Lorebook
+        lorebook = [];
+        if(data.character_book && data.character_book.entries) {
+            data.character_book.entries.forEach(e => {
+                if(e.enabled && e.keys.length) lorebook.push({keys:e.keys, content:e.content, name:e.name});
+            });
+        }
+
+        saveState();
+        updateCardStatus();
+
+        // Greetings
+        currentGreetings = [];
+        const first = data.first_mes || data.char_greeting;
+        if(first) currentGreetings.push(first);
+        if(data.alternate_greetings) currentGreetings.push(...data.alternate_greetings);
+        
+        if(currentGreetings.length > 0) {
+            localStorage.setItem("gs_greetings", JSON.stringify(currentGreetings));
+            currentGreetingIdx = 0;
+            // Trigger Modal
+            openModal("CARD LOADED", `Start fresh chat with ${name}?`, "newCard");
+        } else {
+            alert(`Loaded ${name} (No greetings found).`);
+        }
+    }
+
+    function checkGreetings() {
+        const g = localStorage.getItem("gs_greetings");
+        if(g) {
+            currentGreetings = JSON.parse(g);
+            currentGreetingIdx = 0;
+            els.greetBox.style.display = "block";
+            updateGreetingDisplay();
+        }
+    }
+
+    window.cycleGreeting = function(d) {
+        currentGreetingIdx = (currentGreetingIdx + d + currentGreetings.length) % currentGreetings.length;
+        updateGreetingDisplay();
+    };
+
+    function updateGreetingDisplay() {
+        els.greetText.innerHTML = parseMarkdown(currentGreetings[currentGreetingIdx]);
+        document.getElementById("greetCount").innerText = `${currentGreetingIdx+1}/${currentGreetings.length}`;
+    }
+
+    // --- MESSAGING ---
+    async function sendMessage() {
+        const text = els.input.value.trim();
+        if(!text) return;
+        els.input.value = ""; autoResize(els.input);
+        
+        // Commit Greeting
+        if(messages.length === 0 && currentGreetings.length > 0 && els.greetBox.style.display !== "none") {
+            const g = currentGreetings[currentGreetingIdx];
+            messages.push({role:"assistant", content:g});
+            els.greetBox.style.display = "none";
+            renderMessage("assistant", g);
+        }
+
+        renderMessage('user', text);
+        
+        let payloadSys = sysText;
+        if(cardText) payloadSys += "\n\n" + cardText;
+        if(lorebook.length > 0) {
+            const lower = text.toLowerCase();
+            let hits = [];
+            lorebook.forEach(l => {
+                if(l.keys.some(k => lower.includes(k.toLowerCase()))) hits.push(`[INFO: ${l.name}]\n${l.content}`);
+            });
+            if(hits.length) payloadSys += "\n\n[WORLD INFO]\n" + hits.join("\n");
+        }
+        if(document.getElementById("toolSupport").checked) payloadSys += "\n[SYSTEM: Web Search Allowed]";
+
+        const payload = [{role: "system", content: payloadSys}, ...messages, {role: "user", content: text}];
+        messages.push({role:"user", content:text});
+        saveState();
+
+        const loading = document.createElement("div");
+        loading.className = "msg sys"; loading.innerText = "Thinking...";
+        els.history.appendChild(loading); els.history.scrollTop = els.history.scrollHeight;
+
+        try {
+            let url = PROVIDERS[currentProvider].chat;
+            if(document.getElementById("useProxy").checked) url = "https://corsproxy.io/?" + encodeURIComponent(url);
+            
+            const res = await fetch(url, {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${els.apiKey.value}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    model: els.modelInput.value, 
+                    messages: payload,
+                    temperature: parseFloat(document.getElementById("temp").value),
+                    top_p: parseFloat(document.getElementById("topP").value),
+                    top_k: parseInt(document.getElementById("topK").value),
+                    max_tokens: parseInt(document.getElementById("maxTokens").value)
+                })
+            });
+            
+            const data = await res.json();
+            els.history.removeChild(loading);
+            if(data.error) throw new Error(data.error.message);
+            
+            const reply = data.choices[0].message.content;
+            renderMessage('assistant', reply);
+            messages.push({role:"assistant", content:reply});
+            saveState();
+        } catch(e) {
+            els.history.removeChild(loading);
+            renderMessage('sys', "Error: " + e.message);
+        }
+    }
+
+    // --- UTILS ---
+    function populateModelList(models) {
+        els.modelList.innerHTML = "";
+        models.forEach(m => {
+            const opt = document.createElement("option");
+            let price = m.pricing?.prompt ? (parseFloat(m.pricing.prompt)===0?"FREE":`$${(parseFloat(m.pricing.prompt)*1000000).toFixed(2)}/1M`) : "N/A";
+            opt.value = m.id; opt.innerText = `${price} | ${m.id}`;
+            els.modelList.appendChild(opt);
+        });
+    }
+
+    function renderMessage(role, text) {
+        const d = document.createElement("div");
+        d.className = `msg ${role === 'assistant' ? 'ai' : (role === 'user' ? 'user' : 'sys')}`;
+        if(role === 'assistant') d.innerHTML = parseMarkdown(text); else d.innerText = text;
+        els.history.appendChild(d); els.history.scrollTop = els.history.scrollHeight;
+    }
+
+    function parseMarkdown(text) {
+        const codeBlocks = [];
+        text = text.replace(/```(\w*)\n?([\s\S]*?)```/g, (match, lang, code) => {
+            const id = codeBlocks.length; codeBlocks.push({lang: lang || 'txt', code: code.trim()});
+            return `__CODE_BLOCK_${id}__`;
+        });
+        text = text.replace(/\*\*(.*?)\*\*/g, '<b>$1</b>').replace(/\*(.*?)\*/g, '<i>$1</i>').replace(/`([^`]+)`/g, '<code>$1</code>');
+        return text.replace(/__CODE_BLOCK_(\d+)__/g, (match, id) => {
+            const block = codeBlocks[id];
+            const filename = `snippet_${id}.${block.lang === 'python' ? 'py' : 'txt'}`;
+            return `<div class="code-box"><div class="code-header"><span>${block.lang.toUpperCase()}</span><div><button class="code-btn">COPY</button><button class="code-btn">DL</button></div></div><div class="code-content">${escapeHtml(block.code)}</div><textarea class="raw-code" style="display:none">${block.code}</textarea></div>`;
+        });
+    }
+    function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+    function saveState() {
+        localStorage.setItem("gs_history", JSON.stringify(messages));
+        localStorage.setItem("gs_apikey", els.apiKey.value);
+        localStorage.setItem("gs_sys", sysText);
+        localStorage.setItem("gs_card", cardText);
+        localStorage.setItem("gs_lorebook", JSON.stringify(lorebook));
+        localStorage.setItem("gs_tools", document.getElementById("toolSupport").checked);
+        localStorage.setItem("gs_proxy", document.getElementById("useProxy").checked);
+        localStorage.setItem("gs_entersend", document.getElementById("enterToSend").checked);
+        localStorage.setItem("gs_selected_model_" + currentProvider, els.modelInput.value);
+        saveApiKey();
+    }
+    window.changeProvider = function() {
+        currentProvider = document.getElementById("providerSelect").value;
+        localStorage.setItem("gs_provider", currentProvider);
+        loadApiKey();
+        const saved = localStorage.getItem("gs_models_" + currentProvider);
+        if(saved) populateModelList(JSON.parse(saved));
+        else els.modelList.innerHTML = "";
+        const last = localStorage.getItem("gs_selected_model_" + currentProvider);
+        if(last) els.modelInput.value = last;
+    };
+    function loadApiKey() { els.apiKey.value = localStorage.getItem("gs_apikey_"+currentProvider) || PROVIDERS[currentProvider].defaultKey; }
+    window.saveApiKey = function() { localStorage.setItem("gs_apikey_"+currentProvider, els.apiKey.value); }
+    window.applyPersona = function() { const val = document.getElementById("personaSelect").value; if(PERSONAS[val]) sysText = PERSONAS[val]; saveState(); };
+    window.applyFontSize = function() { const s = document.getElementById("fontSize").value; document.body.style.fontSize = s+"px"; localStorage.setItem("gs_fontsize", s); };
+    function parsePNG(buffer) {
+        const view = new DataView(buffer); let offset = 8; const dec = new TextDecoder('utf-8');
+        while(offset < view.byteLength) {
+            const len = view.getUint32(offset);
+            if(dec.decode(new Uint8Array(buffer, offset+4, 4)) === 'tEXt') {
+                let s = new TextDecoder('latin1').decode(new Uint8Array(buffer, offset+8, len));
+                if(s.includes('chara')) {
+                    let j = s.substring(s.indexOf('{'));
+                    return JSON.parse(j.startsWith('ew') ? atob(j) : j);
+                }
+            }
+            offset += len + 12;
+        }
+    }
+    
+    window.copyToClip = function(btn) {
+        const box = btn.closest('.code-box');
+        const code = box.querySelector('.raw-code').value;
+        const t = document.createElement("textarea"); t.value = code; document.body.appendChild(t); t.select();
+        try { document.execCommand('copy'); btn.innerText = "OK"; } catch(e) { btn.innerText = "ERR"; }
+        document.body.removeChild(t); setTimeout(()=>btn.innerText="COPY",1000);
+    };
+    window.downloadCode = function(n, btn) {
+        const box = btn.closest('.code-box');
+        const code = box.querySelector('.raw-code').value;
+        const b = new Blob([code],{type:'text/plain'});
+        const u = window.URL.createObjectURL(b);
+        const a = document.createElement('a'); a.style.display='none'; a.href=u; a.download=n;
+        document.body.appendChild(a); a.click(); window.URL.revokeObjectURL(u); document.body.removeChild(a);
+    };
+    window.exportState = function() {
+        const state = {};
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if(key.startsWith('gs_')) state[key] = localStorage.getItem(key);
+        }
+        const blob = new Blob([JSON.stringify(state)], {type: "application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a"); a.href = url; a.download = `strip_ai_backup_${new Date().toISOString().slice(0,10)}.json`;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    };
+    window.importState = function(input) {
+        const file = input.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const state = JSON.parse(e.target.result);
+                Object.keys(state).forEach(key => localStorage.setItem(key, state[key]));
+                alert("State Loaded!"); location.reload();
+            } catch(err) { alert("Import Failed"); }
+        };
+        reader.readAsText(file);
+    };
+    function autoResize(el) { el.style.height = 'auto'; el.style.height = Math.min(el.scrollHeight, 80) + 'px'; }
+    els.input.addEventListener("keypress", (e) => {
+        if(document.getElementById("enterToSend").checked && e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+    });
+
+    // Code block buttons - delegated event
+    document.addEventListener('click', function(e) {
+        if(e.target.classList.contains('code-btn')) {
+            e.preventDefault();
+            e.stopPropagation();
+            if(e.target.textContent === 'COPY') {
+                copyToClip(e.target);
+            } else if(e.target.textContent === 'DL') {
+                const filename = `snippet_${Date.now()}.txt`;
+                downloadCode(filename, e.target);
+            }
+        }
+    });
+</script>
+</body>
+</html>
